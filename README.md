@@ -28,7 +28,7 @@ A comprehensive web application vulnerability scanner that detects various secur
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/FluffyCrunch/Vulnerability-Scanner.git
+   git clone https://github.com/FluffyCrunch/Projects.git
    cd vulnerability-scanner
    ```
 
