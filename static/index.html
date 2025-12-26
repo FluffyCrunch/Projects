@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link href="css/app.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+  <style>
+    /* Enhanced Visual Styling */
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      --danger-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --warning-gradient: linear-gradient(135deg, #fad961 0%, #f76b1c 100%);
+      --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* Card Enhancements */
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 1.25rem 1.5rem;
+      font-weight: 600;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* Stat Cards */
+    .card .card-body h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0.5rem 0;
+    }
+
+    .card .card-title {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Button Enhancements */
+    .btn-primary {
+      background: var(--primary-gradient);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Form Input Enhancements */
+    .form-control {
+      border-radius: 8px;
+      border: 2px solid #e9ecef;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+    }
+
+    /* Table Enhancements */
+    .table {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .table thead {
+      background: var(--primary-gradient);
+      color: white;
+    }
+
+    .table thead th {
+      border: none;
+      padding: 1rem;
+      font-weight: 600;
+    }
+
+    .table tbody tr {
+      transition: all 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+      background-color: #f8f9fa;
+      transform: scale(1.01);
+    }
+
+    /* Badge Enhancements */
+    .badge {
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    /* Sidebar Enhancements */
+    .sidebar {
+      background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+    }
+
+    .sidebar-brand {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1.5rem;
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    .sidebar-link {
+      border-radius: 8px;
+      margin: 0.25rem 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(4px);
+    }
+
+    .sidebar-item.active .sidebar-link {
+      background: rgba(102, 126, 234, 0.2);
+      color: #667eea;
+    }
+
+    /* Notification Dropdown */
+    .dropdown-menu {
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      padding: 0;
+    }
+
+    .dropdown-item {
+      padding: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+      background: #f8f9fa;
+      transform: translateX(4px);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Loading State */
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Chart Container */
+    canvas {
+      max-height: 300px;
+    }
+
+    /* Page Title */
+    h1.h3 {
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 2rem;
+    }
+
+    /* Responsive Improvements */
+    @media (max-width: 768px) {
+      .card {
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <nav id="sidebar" class="sidebar js-sidebar">
+      <div class="sidebar-content js-simplebar">
+        <a class="sidebar-brand" href="index.html">
+          <span class="align-middle">Vulnerability Scanner</span>
+        </a>
+        <ul class="sidebar-nav">
+          <li class="sidebar-item active">
+            <a class="sidebar-link" href="index.html">
+              <span class="align-middle">Dashboard</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="report.html">
+              <span class="align-middle">Reports</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="charts.html">
+              <span class="align-middle">Charts</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="main">
+      <nav class="navbar navbar-expand navbar-light navbar-bg">
+        <a class="sidebar-toggle js-sidebar-toggle">
+          <i class="hamburger align-self-center"></i>
+        </a>
+
+        <div class="navbar-collapse collapse">
+          <ul class="navbar-nav navbar-align">
+            <li class="nav-item dropdown">
+              <a class="nav-icon dropdown-toggle" href="#" id="alertsDropdown" data-bs-toggle="dropdown">
+                <div class="position-relative">
+                  <i class="align-middle" data-feather="bell"></i>
+                  <span id="notification-count" class="indicator">0</span>
+                </div>
+              </a>
+              <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end py-0" aria-labelledby="alertsDropdown">
+                <div class="dropdown-menu-header">No New Notifications</div>
+                <div class="dropdown-menu-body" id="notification-list" style="max-height: 300px; overflow-y: auto;"></div>
+                <div class="dropdown-menu-footer"><a href="#" class="text-muted" onclick="clearNotifications(); return false;">Clear all</a></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <main class="content">
+        <div class="container-fluid p-0">
+          <h1 class="h3 mb-3"><strong>Analytics</strong> Dashboard</h1>
+
+          <!-- Add Scan Form -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Start New Scan</h5>
+                </div>
+                <div class="card-body">
+                  <form id="scanForm" class="row g-3">
+                    <div class="col-md-8">
+                      <input type="url" class="form-control" id="targetUrl" placeholder="Enter target URL (e.g., https://example.com)" required>
+                    </div>
+                    <div class="col-md-4">
+                      <button type="submit" class="btn btn-primary">Start Scan</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-sm-6 col-lg-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title text-muted mb-2">Vulnerability Scans</h5>
+                      <h1 id="total-scans" class="mb-0">0</h1>
+                    </div>
+                    <div class="text-primary" style="font-size: 3rem; opacity: 0.2;">
+                      <i class="align-middle" data-feather="shield"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+              <div class="card">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="card-title text-muted mb-2">Scan Requests</h5>
+                      <h1 id="scan-requests" class="mb-0">0</h1>
+                    </div>
+                    <div class="text-success" style="font-size: 3rem; opacity: 0.2;">
+                      <i class="align-middle" data-feather="activity"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Scans Per Month</h5>
+                  <canvas id="barChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">Vulnerability Types</h5>
+                  <canvas id="pieChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title">Vulnerability Reports</h5>
+                </div>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Status</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vulnerability-table">
+                    <tr>
+                      <td colspan="3" class="text-center">Loading data...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script type="module">
+    import { socket } from './js/common.js';
+
+    const user = JSON.parse(sessionStorage.getItem("user"));
+
+    let pieChartInstance = null;
+    let currentScanTargetUrl = null; // Track the current scan's target URL
+    let notificationCount = 0;
+    let activeScans = new Map(); // Track active scans to prevent duplicates
+
+    // Function to fetch and update dashboard stats
+    async function fetchDashboardStats() {
+      try {
+        const res = await fetch('/api/dashboard-stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            const totalScansEl = document.getElementById("total-scans");
+            const scanRequestsEl = document.getElementById("scan-requests");
+            
+            if (totalScansEl) {
+              totalScansEl.textContent = data.totalScans || 0;
+            }
+            if (scanRequestsEl) {
+              scanRequestsEl.textContent = data.scanRequests || 0;
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    }
+
+    function updatePieChart(vulnerabilityTypes) {
+      const pieCtx = document.getElementById("pieChart").getContext("2d");
+      const labels = Object.keys(vulnerabilityTypes);
+      const values = Object.values(vulnerabilityTypes);
+
+      if (pieChartInstance) {
+        pieChartInstance.data.labels = labels;
+        pieChartInstance.data.datasets[0].data = values;
+        pieChartInstance.update();
+      } else {
+        pieChartInstance = new Chart(pieCtx, {
+          type: "pie",
+          data: {
+            labels,
+            datasets: [{
+              backgroundColor: ["#dc3545", "#ffc107", "#28a745", "#6f42c1", "#17a2b8"],
+              data: values
+            }]
+          },
+          options: {
+            responsive: true
+          }
+        });
+      }
+    }
+
+    // Real-time scan results
+    socket.on("scan_results", (scanData) => {
+      console.log('Scan results received:', scanData);
+      console.log('Vulnerabilities:', scanData.results?.vulnerabilities);
+
+      // Only show vulnerabilities if this is a completed scan and we have results
+      if (scanData.status === 'completed' && scanData.results?.vulnerabilities) {
+        const scanTable = document.getElementById("vulnerability-table");
+        // Clear the table and show only vulnerabilities from this scan
+        scanTable.innerHTML = "";
+
+        if (scanData.results.vulnerabilities.length === 0) {
+          scanTable.innerHTML = '<tr><td colspan="3" class="text-center">No vulnerabilities found for this scan</td></tr>';
+        } else {
+          scanData.results.vulnerabilities.forEach(vuln => {
+            console.log('Adding row for:', vuln);
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${vuln.type}</td>
+              <td><span class="badge bg-${vuln.severity === 'High' ? 'danger' : (vuln.severity === 'Medium' ? 'warning' : (vuln.severity === 'Critical' ? 'danger' : (vuln.severity === 'Low' ? 'success' : 'secondary')))}">${vuln.severity}</span></td>
+              <td>${new Date().toLocaleString()}</td>
+            `;
+            scanTable.appendChild(row);
+          });
+        }
+      } else if (scanData.status === 'failed') {
+        const scanTable = document.getElementById("vulnerability-table");
+        scanTable.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Scan failed: ${scanData.error || 'Unknown error'}</td></tr>`;
+      }
+      // Update pie chart with new data
+      fetch("http://localhost:5500/api/charts")
+        .then(res => res.json())
+        .then(data => {
+          updatePieChart(data.charts.vulnerabilityTypes);
+        })
+        .catch(err => {
+          console.error("Error fetching chart data:", err);
+        });
+    });
+
+    // Load notifications from localStorage on page load
+    function loadNotifications() {
+      const savedNotifications = localStorage.getItem('vulnerability_scanner_notifications');
+      if (savedNotifications) {
+        const notifications = JSON.parse(savedNotifications);
+        notificationCount = notifications.length;
+        
+        const counter = document.getElementById("notification-count");
+        if (counter) {
+          counter.textContent = notificationCount;
+        }
+        
+        const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+        const dropdownBody = document.getElementById("notification-list");
+        
+        if (dropdownHeader) {
+          dropdownHeader.textContent = notificationCount > 0 
+            ? `${notificationCount} New Notification${notificationCount > 1 ? 's' : ''}`
+            : 'No New Notifications';
+        }
+        
+        if (dropdownBody && notifications.length > 0) {
+          notifications.forEach(data => {
+            const notifItem = document.createElement('a');
+            notifItem.href = '#';
+            notifItem.className = 'dropdown-item';
+            
+            let icon = '🔔';
+            if (data.type === 'scan_started') icon = '🔍';
+            else if (data.type === 'scan_completed') icon = '✅';
+            else if (data.type === 'report_downloaded') icon = '📥';
+            
+            notifItem.innerHTML = `
+              <div class="d-flex">
+                <div class="flex-grow-1">
+                  <small class="text-muted">${new Date(data.timestamp).toLocaleString()}</small>
+                  <div class="fw-bold">${icon} ${data.message}</div>
+                </div>
+              </div>
+            `;
+            dropdownBody.appendChild(notifItem);
+          });
+        }
+      }
+    }
+
+    // Save notifications to localStorage
+    function saveNotifications() {
+      const dropdownBody = document.getElementById("notification-list");
+      if (dropdownBody) {
+        const notifications = [];
+        dropdownBody.querySelectorAll('.dropdown-item').forEach(item => {
+          const message = item.querySelector('.fw-bold')?.textContent.replace(/^[🔍✅📥🔔]\s*/, '') || '';
+          const timestamp = item.querySelector('.text-muted')?.textContent || '';
+          const icon = item.querySelector('.fw-bold')?.textContent[0] || '🔔';
+          
+          let type = 'info';
+          if (icon === '🔍') type = 'scan_started';
+          else if (icon === '✅') type = 'scan_completed';
+          else if (icon === '📥') type = 'report_downloaded';
+          
+          notifications.push({
+            type: type,
+            message: message,
+            timestamp: timestamp
+          });
+        });
+        
+        // Reverse to get chronological order (newest first)
+        notifications.reverse();
+        localStorage.setItem('vulnerability_scanner_notifications', JSON.stringify(notifications));
+      }
+    }
+
+    // Clear notifications function
+    window.clearNotifications = function() {
+      notificationCount = 0;
+      const counter = document.getElementById("notification-count");
+      if (counter) {
+        counter.textContent = '0';
+      }
+      const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+      const dropdownBody = document.getElementById("notification-list");
+      if (dropdownHeader) {
+        dropdownHeader.textContent = 'No New Notifications';
+      }
+      if (dropdownBody) {
+        dropdownBody.innerHTML = '';
+      }
+      activeScans.clear();
+      localStorage.removeItem('vulnerability_scanner_notifications');
+    };
+
+    // Notifications
+    socket.on("notification", (data) => {
+      // Handle duplicate scan_started notifications
+      if (data.type === 'scan_started') {
+        const scanKey = `${data.targetUrl}_${data.scanId}`;
+        if (activeScans.has(scanKey)) {
+          // Already have a scan_started notification for this scan, skip
+          return;
+        }
+        activeScans.set(scanKey, data);
+      } else if (data.type === 'scan_completed') {
+        // Remove the scan_started notification when scan completes
+        const scanKey = `${data.targetUrl}_${data.scanId}`;
+        activeScans.delete(scanKey);
+      }
+
+      notificationCount++;
+      const counter = document.getElementById("notification-count");
+      if (counter) {
+        counter.textContent = notificationCount;
+      }
+
+      // Update dropdown header
+      const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+      if (dropdownHeader) {
+        dropdownHeader.textContent = `${notificationCount} New Notification${notificationCount > 1 ? 's' : ''}`;
+      }
+
+      // Add notification to dropdown
+      const dropdownBody = document.getElementById("notification-list");
+      if (dropdownBody) {
+        const notifItem = document.createElement('a');
+        notifItem.href = '#';
+        notifItem.className = 'dropdown-item';
+        
+        // Choose icon based on notification type
+        let icon = '🔔';
+        if (data.type === 'scan_started') icon = '🔍';
+        else if (data.type === 'scan_completed') icon = '✅';
+        else if (data.type === 'report_downloaded') icon = '📥';
+        
+        const timestamp = new Date(data.timestamp).toLocaleString();
+        notifItem.innerHTML = `
+          <div class="d-flex">
+            <div class="flex-grow-1">
+              <small class="text-muted">${timestamp}</small>
+              <div class="fw-bold">${icon} ${data.message}</div>
+            </div>
+          </div>
+        `;
+        dropdownBody.insertBefore(notifItem, dropdownBody.firstChild);
+        
+        // Limit to 10 notifications
+        while (dropdownBody.children.length > 10) {
+          dropdownBody.removeChild(dropdownBody.lastChild);
+        }
+        
+        // Save to localStorage
+        saveNotifications();
+      }
+    });
+    
+    // Load notifications on page load
+    loadNotifications();
+
+    // Dashboard stats - update when received via socket
+    socket.on("dashboard_stats", (data) => {
+      if (data && (data.totalScans !== undefined || data.scanRequests !== undefined)) {
+        const totalScansEl = document.getElementById("total-scans");
+        const scanRequestsEl = document.getElementById("scan-requests");
+        
+        if (totalScansEl && data.totalScans !== undefined) {
+          totalScansEl.textContent = data.totalScans || 0;
+        }
+        if (scanRequestsEl && data.scanRequests !== undefined) {
+          scanRequestsEl.textContent = data.scanRequests || 0;
+        }
+      }
+    });
+
+    // Fetch stats when socket connects
+    socket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+      fetchDashboardStats();
+    });
+
+    // Past vulnerabilities - only load on initial page load if no scan is in progress
+    async function fetchData() {
+      // Don't fetch all vulnerabilities if we're waiting for a scan result
+      // The table will be updated when scan results come in via WebSocket
+      if (currentScanTargetUrl) {
+        return; // Skip loading all vulnerabilities if a scan is active
+      }
+      
+      try {
+        const res = await fetch("http://localhost:5500/api/vulnerabilities");
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch vulnerabilities: ${res.status}`);
+        }
+        
+        const result = await res.json();
+        const table = document.getElementById("vulnerability-table");
+
+        if (result.success && result.vulnerabilities.length > 0) {
+          // Show only 6-7 recent vulnerabilities on initial load
+          // This will be replaced when a new scan completes
+          table.innerHTML = result.vulnerabilities.slice(0, 7).map(v => `
+            <tr>
+              <td>${v.type}</td>
+              <td><span class="badge bg-${v.severity === 'High' ? 'danger' : (v.severity === 'Medium' ? 'warning' : (v.severity === 'Critical' ? 'danger' : (v.severity === 'Low' ? 'success' : 'secondary')))}">${v.severity}</span></td>
+              <td>${new Date(v.detectedAt).toLocaleString()}</td>
+            </tr>
+          `).join('');
+        } else {
+          table.innerHTML = '<tr><td colspan="3" class="text-center">No vulnerabilities found. Start a scan to see results.</td></tr>';
+        }
+      } catch (err) {
+        console.error("❌ Error fetching vulnerabilities:", err);
+        document.getElementById("vulnerability-table").innerHTML = 
+          `<tr><td colspan="3" class="text-center">Error loading data: ${err.message}</td></tr>`;
+      }
+    }
+    
+    // Load charts
+    async function fetchChartData() {
+      try {
+        const res = await fetch("http://localhost:5500/api/charts");
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch chart data: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        if (!data || !data.charts) {
+          console.error("Invalid chart data structure:", data);
+          return;
+        }
+
+        const barCtx = document.getElementById("barChart").getContext("2d");
+        const pieCtx = document.getElementById("pieChart").getContext("2d");
+
+        const scanDates = data.charts.scanActivity.map(e => e.date);
+        const scanCounts = data.charts.scanActivity.map(e => e.scans);
+
+        new Chart(barCtx, {
+          type: "bar",
+          data: {
+            labels: scanDates,
+            datasets: [{
+              label: "Scans",
+              backgroundColor: "#007bff",
+              data: scanCounts
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        updatePieChart(data.charts.vulnerabilityTypes);
+
+      } catch (err) {
+        console.error("❌ Error loading chart data:", err);
+      }
+    }
+
+    // Fetch initial data
+    fetchData();
+    fetchChartData();
+    
+    // Fetch initial stats immediately on page load
+    fetchDashboardStats();
+
+    // Handle scan form submission
+    document.getElementById('scanForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const targetUrl = document.getElementById('targetUrl').value;
+      
+      if (!targetUrl) {
+        alert("Please enter a target URL to scan");
+        return;
+      }
+      
+      // Show feedback that scan is starting
+      const scanButton = e.target.querySelector('button[type="submit"]');
+      const originalText = scanButton.textContent;
+      scanButton.textContent = "Starting scan...";
+      scanButton.disabled = true;
+      
+      try {
+        const response = await fetch('http://localhost:5500/api/start-scan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ targetUrl })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to start scan: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        if (result.scanId) {
+          // Store the current scan's target URL
+          currentScanTargetUrl = targetUrl;
+          
+          // Clear the table and show loading message for this scan
+          const scanTable = document.getElementById("vulnerability-table");
+          scanTable.innerHTML = '<tr><td colspan="3" class="text-center">Scanning... Please wait for results</td></tr>';
+          
+          // Notification will be handled by socket.on("notification") - no need to add manually
+          
+          // Reset form
+          document.getElementById('targetUrl').value = "";
+        }
+      } catch (error) {
+        console.error('Error starting scan:', error);
+        alert(`Error starting scan: ${error.message}`);
+      } finally {
+        // Reset button state
+        scanButton.textContent = originalText;
+        scanButton.disabled = false;
+      }
+    });
+
+  </script>
+</body>
+</html>

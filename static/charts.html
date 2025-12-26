@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Vulnerability Charts</title>
+	<link href="css/app.css" rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<style>
+		/* Enhanced Visual Styling */
+		:root {
+			--primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		}
+
+		body {
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+		}
+
+		.card {
+			border: none;
+			border-radius: 12px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+			transition: all 0.3s ease;
+		}
+
+		.card:hover {
+			transform: translateY(-4px);
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+		}
+
+		.card-header {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			padding: 1.25rem 1.5rem;
+			font-weight: 600;
+		}
+
+		.card-header .card-title {
+			color: white !important;
+			font-weight: 600;
+		}
+
+		h1.h3 {
+			font-weight: 700;
+			color: #2c3e50;
+		}
+
+		canvas {
+			max-height: 300px;
+		}
+
+		#activityChart {
+			max-height: 400px !important;
+		}
+
+		.card-body {
+			position: relative;
+			height: auto;
+			min-height: 300px;
+		}
+
+		.card-body canvas {
+			max-height: 400px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="wrapper">
+		<!-- Sidebar -->
+		<nav id="sidebar" class="sidebar js-sidebar">
+			<div class="sidebar-content js-simplebar">
+				<a class="sidebar-brand" href="index.html">
+					<span class="align-middle">Vulnerability Scanner</span>
+				</a>
+				<ul class="sidebar-nav">
+					<li class="sidebar-item"><a class="sidebar-link" href="index.html"><i class="align-middle" data-feather="sliders"></i> <span class="align-middle">Dashboard</span></a></li>
+					<li class="sidebar-item"><a class="sidebar-link" href="report.html"><i class="align-middle" data-feather="file-text"></i> <span class="align-middle">Reports</span></a></li>
+					<li class="sidebar-item active"><a class="sidebar-link" href="charts.html"><i class="align-middle" data-feather="bar-chart-2"></i> <span class="align-middle">Charts</span></a></li>
+				</ul>
+			</div>
+		</nav>
+
+		<div class="main">
+			<!-- Top Navbar -->
+			<nav class="navbar navbar-expand navbar-light navbar-bg">
+				<a class="sidebar-toggle js-sidebar-toggle"><i class="hamburger align-self-center"></i></a>
+				<div class="navbar-collapse collapse">
+					<ul class="navbar-nav navbar-align">
+						<li class="nav-item dropdown">
+							<a class="nav-icon dropdown-toggle" href="#" id="alertsDropdown" data-bs-toggle="dropdown">
+								<div class="position-relative"><i class="align-middle" data-feather="bell"></i><span class="indicator">0</span></div>
+							</a>
+							<div class="dropdown-menu dropdown-menu-lg dropdown-menu-end py-0" aria-labelledby="alertsDropdown">
+								<div class="dropdown-menu-header">No New Notifications</div>
+								<div class="dropdown-menu-body" style="max-height: 300px; overflow-y: auto;"></div>
+								<div class="dropdown-menu-footer"><a href="#" class="text-muted" onclick="clearNotifications()">Clear all</a></div>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</nav>
+
+			<!-- Page Content -->
+			<main class="content">
+				<div class="container-fluid p-0">
+					<h1 class="h3 mb-3">Vulnerability Analytics</h1>
+
+					<div class="row">
+						<div class="col-12 col-lg-6">
+							<div class="card">
+								<div class="card-header">
+									<h5 class="card-title">Vulnerability Severity Distribution</h5>
+								</div>
+								<div class="card-body">
+									<canvas id="severityChart"></canvas>
+								</div>
+							</div>
+						</div>
+						<div class="col-12 col-lg-6">
+							<div class="card">
+								<div class="card-header">
+									<h5 class="card-title">Vulnerability Types</h5>
+								</div>
+								<div class="card-body">
+									<canvas id="typeChart"></canvas>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-header">
+									<h5 class="card-title">Scan Activity Over Time</h5>
+								</div>
+								<div class="card-body">
+									<canvas id="activityChart"></canvas>
+								</div>
+								</div>
+							</div>
+						</div>
+
+					<div class="row">
+						<div class="col-12 col-lg-6">
+							<div class="card">
+								<div class="card-header">
+									<h5 class="card-title">Risk Score Distribution</h5>
+								</div>
+								<div class="card-body">
+									<canvas id="riskChart"></canvas>
+								</div>
+							</div>
+						</div>
+						<div class="col-12 col-lg-6">
+							<div class="card">
+								<div class="card-header">
+									<h5 class="card-title">Vulnerability Trends</h5>
+								</div>
+								<div class="card-body">
+									<canvas id="trendChart"></canvas>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</main>
+		</div>
+	</div>
+
+	<script src="js/app.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+
+	<!-- Notification System -->
+	<script>
+		// Initialize Socket.IO for notifications
+		const socket = io();
+		let notificationCount = 0;
+		
+		// Load notifications from localStorage on page load
+		function loadNotifications() {
+			const savedNotifications = localStorage.getItem('vulnerability_scanner_notifications');
+			if (savedNotifications) {
+				const notifications = JSON.parse(savedNotifications);
+				notificationCount = notifications.length;
+				
+				const indicator = document.querySelector('#alertsDropdown .indicator');
+				if (indicator) {
+					indicator.textContent = notificationCount;
+				}
+				
+				const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+				const dropdownBody = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-body');
+				
+				if (dropdownHeader) {
+					dropdownHeader.textContent = notificationCount > 0 
+						? `${notificationCount} New Notification${notificationCount > 1 ? 's' : ''}`
+						: 'No New Notifications';
+				}
+				
+				if (dropdownBody && notifications.length > 0) {
+					notifications.forEach(data => {
+						const notifItem = document.createElement('a');
+						notifItem.href = '#';
+						notifItem.className = 'dropdown-item';
+						
+						let icon = '🔔';
+						if (data.type === 'scan_started') icon = '🔍';
+						else if (data.type === 'scan_completed') icon = '✅';
+						else if (data.type === 'report_downloaded') icon = '📥';
+						
+						notifItem.innerHTML = `
+							<div class="d-flex">
+								<div class="flex-grow-1">
+									<small class="text-muted">${data.timestamp}</small>
+									<div class="fw-bold">${icon} ${data.message}</div>
+								</div>
+							</div>
+						`;
+						dropdownBody.appendChild(notifItem);
+					});
+				}
+			}
+		}
+
+		// Save notifications to localStorage
+		function saveNotifications() {
+			const dropdownBody = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-body');
+			if (dropdownBody) {
+				const notifications = [];
+				dropdownBody.querySelectorAll('.dropdown-item').forEach(item => {
+					const message = item.querySelector('.fw-bold')?.textContent.replace(/^[🔍✅📥🔔]\s*/, '') || '';
+					const timestamp = item.querySelector('.text-muted')?.textContent || '';
+					const icon = item.querySelector('.fw-bold')?.textContent[0] || '🔔';
+					
+					let type = 'info';
+					if (icon === '🔍') type = 'scan_started';
+					else if (icon === '✅') type = 'scan_completed';
+					else if (icon === '📥') type = 'report_downloaded';
+					
+					notifications.push({
+						type: type,
+						message: message,
+						timestamp: timestamp
+					});
+				});
+				
+				// Reverse to get chronological order (newest first)
+				notifications.reverse();
+				localStorage.setItem('vulnerability_scanner_notifications', JSON.stringify(notifications));
+			}
+		}
+		
+		// Clear notifications function
+		window.clearNotifications = function() {
+			notificationCount = 0;
+			const indicator = document.querySelector('#alertsDropdown .indicator');
+			if (indicator) {
+				indicator.textContent = '0';
+			}
+			const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+			const dropdownBody = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-body');
+			if (dropdownHeader) {
+				dropdownHeader.textContent = 'No New Notifications';
+			}
+			if (dropdownBody) {
+				dropdownBody.innerHTML = '';
+			}
+			localStorage.removeItem('vulnerability_scanner_notifications');
+		};
+		
+		// Notification handler
+		socket.on('notification', (data) => {
+			notificationCount++;
+			const indicator = document.querySelector('#alertsDropdown .indicator');
+			if (indicator) {
+				indicator.textContent = notificationCount;
+			}
+			
+			// Update notification dropdown
+			const dropdownHeader = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-header');
+			const dropdownBody = document.querySelector('#alertsDropdown + .dropdown-menu .dropdown-menu-body');
+			
+			if (dropdownHeader) {
+				dropdownHeader.textContent = `${notificationCount} New Notification${notificationCount > 1 ? 's' : ''}`;
+			}
+			
+			// Add notification item
+			if (dropdownBody) {
+				const notifItem = document.createElement('a');
+				notifItem.href = '#';
+				notifItem.className = 'dropdown-item';
+				const icon = data.type === 'scan_started' ? '🔍' : data.type === 'scan_completed' ? '✅' : data.type === 'report_downloaded' ? '📥' : '🔔';
+				const timestamp = new Date(data.timestamp).toLocaleString();
+				notifItem.innerHTML = `
+					<div class="d-flex">
+						<div class="flex-grow-1">
+							<small class="text-muted">${timestamp}</small>
+							<div class="fw-bold">${icon} ${data.message}</div>
+						</div>
+					</div>
+				`;
+				dropdownBody.insertBefore(notifItem, dropdownBody.firstChild);
+				
+				// Limit to 10 notifications
+				while (dropdownBody.children.length > 10) {
+					dropdownBody.removeChild(dropdownBody.lastChild);
+				}
+				
+				// Save to localStorage
+				saveNotifications();
+			}
+		});
+		
+		// Load notifications on page load
+		loadNotifications();
+	</script>
+
+	<!-- Chart.js Logic -->
+	<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			fetch('http://localhost:5500/api/charts')
+				.then(res => {
+					if (!res.ok) {
+						throw new Error('Failed to fetch chart data: ' + res.status);
+					}
+					return res.json();
+				})
+				.then(data => {
+					if (!data || !data.charts) {
+						console.error('Invalid chart data received:', data);
+						return;
+					}
+					
+					const charts = data.charts;
+					// Vulnerability Types Pie Chart
+					new Chart(document.getElementById('typeChart'), {
+						type: 'pie',
+						data: {
+							labels: Object.keys(charts.vulnerabilityTypes),
+							datasets: [{
+								data: Object.values(charts.vulnerabilityTypes),
+								backgroundColor: ["#dc3545", "#ffc107", "#28a745", "#6f42c1", "#17a2b8"]
+							}]
+						},
+						options: { responsive: true }
+					});
+					// Scan Activity Bar Chart
+					new Chart(document.getElementById('activityChart'), {
+						type: 'bar',
+						data: {
+							labels: charts.scanActivity.map(item => item.date),
+							datasets: [{
+								label: 'Scans',
+								data: charts.scanActivity.map(item => item.scans),
+								backgroundColor: '#0d6efd'
+							}]
+						},
+						options: {
+							responsive: true,
+							maintainAspectRatio: true,
+							aspectRatio: 2.5,
+							plugins: { legend: { display: false } },
+							scales: { 
+								y: { 
+									beginAtZero: true, 
+									ticks: { stepSize: 1 } 
+								},
+								x: {
+									ticks: {
+										maxRotation: 45,
+										minRotation: 45
+									}
+								}
+							}
+						}
+					});
+					// Severity Distribution Doughnut Chart
+					const severityData = charts.severityDistribution || { High: 0, Medium: 0, Low: 0, Critical: 0, Informational: 0 };
+					const severityLabels = [];
+					const severityValues = [];
+					const severityColors = [];
+					
+					// Add Critical if exists
+					if (severityData.Critical > 0) {
+						severityLabels.push('Critical');
+						severityValues.push(severityData.Critical);
+						severityColors.push('#8b0000');
+					}
+					// Add High if exists
+					if (severityData.High > 0) {
+						severityLabels.push('High');
+						severityValues.push(severityData.High);
+						severityColors.push('#dc3545');
+					}
+					// Add Medium if exists
+					if (severityData.Medium > 0) {
+						severityLabels.push('Medium');
+						severityValues.push(severityData.Medium);
+						severityColors.push('#ffc107');
+					}
+					// Add Low if exists
+					if (severityData.Low > 0) {
+						severityLabels.push('Low');
+						severityValues.push(severityData.Low);
+						severityColors.push('#28a745');
+					}
+					// Add Informational if exists
+					if (severityData.Informational > 0) {
+						severityLabels.push('Informational');
+						severityValues.push(severityData.Informational);
+						severityColors.push('#17a2b8');
+					}
+					
+					// If no data, show message
+					if (severityLabels.length === 0) {
+						document.getElementById('severityChart').parentElement.innerHTML = '<p class="text-center text-muted mt-3">No severity data available. Start a scan to see vulnerability severity distribution.</p>';
+					} else {
+						new Chart(document.getElementById('severityChart'), {
+							type: 'doughnut',
+							data: {
+								labels: severityLabels,
+								datasets: [{
+									data: severityValues,
+									backgroundColor: severityColors
+								}]
+							},
+							options: { 
+								responsive: true, 
+								plugins: { 
+									legend: { position: 'bottom' },
+									tooltip: {
+										callbacks: {
+											label: function(context) {
+												const label = context.label || '';
+												const value = context.parsed || 0;
+												const total = context.dataset.data.reduce((a, b) => a + b, 0);
+												const percentage = ((value / total) * 100).toFixed(1);
+												return `${label}: ${value} (${percentage}%)`;
+											}
+										}
+									}
+								}
+							}
+						});
+					}
+					// Risk Score Distribution Bar Chart
+					new Chart(document.getElementById('riskChart'), {
+						type: 'bar',
+						data: {
+							labels: Object.keys(charts.riskBuckets),
+							datasets: [{
+								label: 'Number of Vulnerabilities',
+								data: Object.values(charts.riskBuckets),
+								backgroundColor: '#6f42c1'
+							}]
+						},
+						options: {
+							responsive: true,
+							plugins: { legend: { display: false } },
+							scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+						}
+					});
+					// Vulnerability Trends Line Chart
+					const trendLabels = Object.keys(charts.trends);
+					const highData = trendLabels.map(month => charts.trends[month].High || 0);
+					const mediumData = trendLabels.map(month => charts.trends[month].Medium || 0);
+					const lowData = trendLabels.map(month => charts.trends[month].Low || 0);
+					new Chart(document.getElementById('trendChart'), {
+						type: 'line',
+						data: {
+							labels: trendLabels,
+							datasets: [
+								{
+									label: 'High Severity',
+									data: highData,
+									borderColor: '#dc3545',
+									backgroundColor: '#dc3545',
+									fill: false,
+									tension: 0.1
+								},
+								{
+									label: 'Medium Severity',
+									data: mediumData,
+									borderColor: '#ffc107',
+									backgroundColor: '#ffc107',
+									fill: false,
+									tension: 0.1
+								},
+								{
+									label: 'Low Severity',
+									data: lowData,
+									borderColor: '#28a745',
+									backgroundColor: '#28a745',
+									fill: false,
+									tension: 0.1
+								}
+							]
+						},
+						options: {
+							responsive: true,
+							plugins: { legend: { position: 'bottom' } },
+							scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+						}
+					});
+				})
+				.catch(err => console.error('Error loading chart data:', err));
+		});
+	</script>
+
+</body>
+
+</html>
