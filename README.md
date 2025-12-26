@@ -15,19 +15,6 @@ A comprehensive web application vulnerability scanner that detects various secur
 - **Notification System**: Real-time notifications for scan events and report downloads
 - **Responsive Design**: Modern, professional UI with smooth animations
 
-## Screenshots
-
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-The main dashboard displays scan statistics, vulnerability counts, and real-time scan results.
-
-### Reports Page
-![Reports](screenshots/reports.png)
-View all detected vulnerabilities with pagination, date filtering, and PDF export functionality.
-
-### Charts & Analytics
-![Charts](screenshots/charts.png)
-Comprehensive analytics including severity distribution, vulnerability types, and scan activity over time.
 
 ## Prerequisites
 
